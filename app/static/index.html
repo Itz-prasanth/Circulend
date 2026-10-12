@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CircuLend - community tool & equipment sharing</title>
+<style>
+:root{--bg:#f4f7f5;--card:#fff;--ink:#16302b;--mut:#5b7069;--brand:#0f766e;--brand2:#14b8a6;--line:#dbe6e1;--ok:#15803d;--warn:#b45309;--bad:#b91c1c;--info:#1d4ed8}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:linear-gradient(90deg,#0b3d3a,#0f766e);color:#fff;padding:10px 22px;display:flex;align-items:center;gap:18px;position:sticky;top:0;z-index:5}
+header h1{font-size:19px;margin:0;letter-spacing:.3px}header h1 span{color:#99f6e4}
+nav{display:flex;gap:4px;flex:1;flex-wrap:wrap}nav button{background:transparent;border:0;color:#cffafe;padding:8px 13px;border-radius:8px;cursor:pointer;font-size:14px}
+nav button.on,nav button:hover{background:rgba(255,255,255,.16);color:#fff}
+.who{font-size:13px;display:flex;gap:10px;align-items:center}.who b{color:#99f6e4}
+main{max-width:1180px;margin:20px auto;padding:0 18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.grid{display:grid;gap:14px}.g3{grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}.g2{grid-template-columns:repeat(auto-fit,minmax(380px,1fr))}
+h2{margin:0 0 12px;font-size:18px}h3{margin:0 0 8px;font-size:15px}.mut{color:var(--mut)}.small{font-size:12px}
+button.btn,.btn{background:var(--brand);color:#fff;border:0;border-radius:8px;padding:7px 13px;cursor:pointer;font-size:13px}
+.btn.alt{background:#e6f2ef;color:var(--brand)}.btn.red{background:var(--bad)}.btn.amber{background:var(--warn)}.btn:disabled{opacity:.45;cursor:not-allowed}
+input,select,textarea{border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;background:#fff;max-width:100%}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.row.sp{justify-content:space-between}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 16px}.chip{padding:5px 11px;border-radius:999px;background:#fff;border:1px solid var(--line);cursor:pointer;font-size:13px}.chip.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.bar{display:flex;height:9px;border-radius:5px;overflow:hidden;background:#e5ece9;margin:8px 0 4px}.bar i{display:block}
+.av{background:#22c55e}.ln{background:#f59e0b}.rs{background:#60a5fa}.rp{background:#ef4444}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:600}
+.b-ok{background:#dcfce7;color:var(--ok)}.b-warn{background:#fef3c7;color:var(--warn)}.b-bad{background:#fee2e2;color:var(--bad)}.b-info{background:#dbeafe;color:var(--info)}.b-mut{background:#e5e7eb;color:#374151}
+table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--mut);font-weight:600;border-bottom:1px solid var(--line);padding:6px 6px}td{padding:6px;border-bottom:1px solid #eef3f1;vertical-align:top}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}.tabs button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}.tabs button.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+.modal{position:fixed;inset:0;background:rgba(10,30,28,.5);display:flex;align-items:center;justify-content:center;z-index:20}.modal .card{width:min(520px,94vw);max-height:90vh;overflow:auto}
+#toast{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:30}.t{background:#0f172a;color:#fff;padding:10px 14px;border-radius:10px;max-width:420px;box-shadow:0 6px 20px rgba(0,0,0,.25)}.t.err{background:#7f1d1d}.t.ok{background:#14532d}
+.login{max-width:420px;margin:60px auto}.demo button{margin:3px 4px 0 0}
+.kpi{font-size:26px;font-weight:700;color:var(--brand)}.lab-out{background:#0b1220;color:#d1fae5;border-radius:8px;padding:10px;font:12.5px/1.5 ui-monospace,Menlo,monospace;margin-top:8px;white-space:pre-wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px;margin-right:12px;font-size:12px}.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.hbar{display:grid;grid-template-columns:150px 1fr 56px;gap:8px;align-items:center;margin:5px 0;font-size:13px}.hbar .bar{margin:0;height:14px}
+</style></head><body>
+<header><h1>Circu<span>Lend</span></h1><nav id="nav"></nav><div class="who" id="who"></div></header>
+<main id="main"></main><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s), esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let user=null, tab='browse', cat=null, sub='desk';
+async function api(path,opts={}){const r=await fetch('/api'+path,{method:opts.body?'POST':'GET',headers:{'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
+  const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.statusText);return j}
+function toast(m,k=''){const e=document.createElement('div');e.className='t '+k;e.textContent=m;$('#toast').append(e);setTimeout(()=>e.remove(),5200)}
+const act=async(fn,ok)=>{try{const r=await fn();if(ok)toast(typeof ok==='function'?ok(r):ok,'ok');return r}catch(e){toast(e.message,'err')}};
+const fd=d=>d?String(d).slice(0,10):'-', today=()=>new Date().toISOString().slice(0,10);
+const sb=s=>`<span class="badge ${{Available:'b-ok',Loaned:'b-warn',Reserved:'b-info',Repair:'b-bad',Returned:'b-ok',Active:'b-info',Overdue:'b-bad',Held:'b-warn',Released:'b-ok',Forfeited:'b-bad',Fulfilled:'b-ok',Waiting:'b-warn',Promoted:'b-ok',Expired:'b-mut',Cancelled:'b-mut'}[s]||'b-mut'}">${esc(s)}</span>`;
+function bar(a){const t=a.total_units||1;return `<div class="bar"><i class="av" style="width:${a.available_units/t*100}%"></i><i class="rs" style="width:${a.reserved_units/t*100}%"></i><i class="ln" style="width:${a.loaned_units/t*100}%"></i><i class="rp" style="width:${a.repair_units/t*100}%"></i></div>`}
+const legend=`<div class="legend small mut"><span><i class="av"></i>Available</span><span><i class="rs"></i>Reserved</span><span><i class="ln"></i>Loaned</span><span><i class="rp"></i>Repair</span></div>`;
+
+async function boot(){user=await api('/me');render()}
+function render(){
+  $('#who').innerHTML=user?`<span>${esc(user.name)} <b>(${user.role})</b></span><button class="btn alt" onclick="logout()">Sign out</button>`:'';
+  const tabs=user?[['browse','Browse tools'],['kits','Kits'],['account','My account']].concat(user.role!=='member'?[['staff','Staff desk'],['dash','Dashboard'],['lab','Concurrency lab']]:[]):[];
+  $('#nav').innerHTML=tabs.map(([k,l])=>`<button class="${tab===k?'on':''}" onclick="go('${k}')">${l}</button>`).join('');
+  if(!user)return loginView();({browse,kits,account,staff,dash,lab})[tab]();
+}
+const go=k=>{tab=k;render()};
+async function logout(){await api('/logout',{body:{}});user=null;render()}
+
+async function loginView(){
+  const demo=await api('/demo-accounts');
+  $('#main').innerHTML=`<div class="card login"><h2>Sign in to CircuLend</h2><p class="mut">Borrow tools, don't buy them. Reserve, collect, return - the database keeps everyone honest.</p>
+  <div class="grid"><input id="em" placeholder="E-mail"><input id="pw" type="password" placeholder="Password" value="circulend123"><button class="btn" onclick="doLogin()">Sign in</button></div>
+  <p class="small mut" style="margin-top:14px">Demo accounts (password <b>circulend123</b>):</p><div class="demo">${demo.map(d=>`<button class="btn alt" onclick="$('#em').value='${d.email}'">${esc(d.name)} · ${d.role}</button>`).join('')}</div></div>`;
+}
+async function doLogin(){const u=await act(()=>api('/login',{body:{email:$('#em').value,password:$('#pw').value}}));if(u){user=u;tab=u.role==='member'?'browse':'staff';render()}}
+
+// ---------- browse ----------
+async function browse(){
+  const cats=await api('/categories');
+  $('#main').innerHTML=`<div class="row sp"><h2>Browse tools</h2><input id="q" placeholder="Search tools…" oninput="loadTools()" style="width:240px"></div>
+  <div class="chips"><span class="chip ${cat?'':'on'}" onclick="cat=null;browse()">All</span>${cats.map(c=>`<span class="chip ${cat===c.name?'on':''}" onclick="cat='${c.name.replace(/'/g,"\\'")}';browse()">${esc(c.name)}</span>`).join('')}</div>
+  ${legend}<div class="grid g3" id="tools" style="margin-top:10px"></div>`;loadTools();
+}
+async function loadTools(){
+  const q=$('#q')?$('#q').value:'';const ts=await api('/tools?q='+encodeURIComponent(q)+(cat?'&category='+encodeURIComponent(cat):''));
+  $('#tools').innerHTML=ts.map(t=>`<div class="card"><div class="row sp"><h3>${esc(t.name)}</h3>${t.available_units>0?'<span class="badge b-ok">'+t.available_units+' available</span>':'<span class="badge b-bad">all out</span>'}</div>
+   <div class="small mut">${esc(t.category)} · ₹${t.deposit_amount} deposit · max ${t.max_loan_days} days</div><p class="small">${esc(t.description)}</p>${bar(t)}
+   <div class="small mut">${t.total_units} unit${t.total_units>1?'s':''} · ${t.loaned_units} out · ${t.repair_units} in repair${t.waitlist_length?' · <b>'+t.waitlist_length+' waiting</b>':''}</div>
+   <div class="row" style="margin-top:10px"><button class="btn" onclick="reserveDlg(${t.tool_id})">${t.available_units>0?'Reserve':'Join waitlist'}</button><button class="btn alt" onclick="unitsDlg(${t.tool_id},'${esc(t.name).replace(/'/g,"\\'")}')">Units</button></div></div>`).join('')||'<p class="mut">No tools match.</p>';
+}
+function modal(html){const m=document.createElement('div');m.className='modal';m.innerHTML=`<div class="card">${html}</div>`;m.onclick=e=>{if(e.target===m)m.remove()};document.body.append(m);return m}
+async function unitsDlg(id,name){const us=await api('/tools/'+id+'/units');
+  modal(`<h3>${name} - individual units</h3><table><tr><th>Unit</th><th>Serial</th><th>Status</th><th>Condition</th><th>Due back</th></tr>${us.map(u=>`<tr><td>#${u.unit_no}</td><td>${u.serial_no}</td><td>${sb(u.status)}</td><td>${u.condition_status}</td><td>${fd(u.due_back)}</td></tr>`).join('')}</table>`)}
+async function reserveDlg(id){const us=await api('/tools/'+id+'/units');
+  const m=modal(`<h3>Reserve</h3><div class="grid"><label>Unit<select id="ru"><option value="">Next available unit</option>${us.map(u=>`<option value="${u.unit_id}">Unit #${u.unit_no} (${u.status})</option>`).join('')}</select></label>
+  <label>Start date<input id="rd" type="date" value="${today()}" min="${today()}"></label><label>Days<input id="rn" type="number" min="1" max="60" value="3"></label>
+  <p class="small mut">If every unit is booked you are automatically added to the waitlist.</p>
+  <div class="row"><button class="btn" id="go">Confirm</button><button class="btn alt" onclick="this.closest('.modal').remove()">Cancel</button></div></div>`);
+  m.querySelector('#go').onclick=async()=>{const r=await act(()=>api('/reserve',{body:{tool_id:id,unit_id:m.querySelector('#ru').value||null,date:m.querySelector('#rd').value,days:+m.querySelector('#rn').value}}));
+   if(r){m.remove();toast(r.outcome==='reserved'?'Reserved unit #'+r.unit_id+' - reservation '+r.reservation_id:'All units out - you are #'+r.waitlist_position+' on the waitlist','ok');loadTools()}}}
+
+// ---------- kits ----------
+async function kits(){const ks=await api('/kits');
+  $('#main').innerHTML=`<h2>Kits</h2><p class="mut">A kit is available only when <b>every</b> component has a free unit (view <code>v_kit_availability</code>).</p><div class="grid g3">${ks.map(k=>`<div class="card"><div class="row sp"><h3>${esc(k.name)}</h3>${k.kit_available?'<span class="badge b-ok">Available</span>':'<span class="badge b-bad">Blocked</span>'}</div>
+  <p class="small mut">${esc(k.description)}</p><div class="small">${k.components_available} of ${k.components} components free</div>${k.blocking_components?`<div class="small" style="color:var(--bad)">Blocked by: <b>${esc(k.blocking_components)}</b></div>`:''}
+  ${user.role!=='member'?`<button class="btn" style="margin-top:10px" onclick="kitCheckout(${k.kit_id},'${esc(k.name)}')">Check out kit…</button>`:''}</div>`).join('')}</div>`}
+async function kitCheckout(id,name){const ms=await api('/staff/members');
+  const m=modal(`<h3>Check out “${name}”</h3><div class="grid"><label>Member<select id="km">${ms.filter(x=>x.role==='member').map(x=>`<option value="${x.member_id}">${esc(x.name)} (${x.active_loans_count}/${x.max_loans})</option>`).join('')}</select></label><label>Days<input id="kd" type="number" value="3" min="1"></label><button class="btn" id="go">Check out all components</button></div>`);
+  m.querySelector('#go').onclick=async()=>{const r=await act(()=>api('/staff/checkout-kit',{body:{kit_id:id,member_id:+m.querySelector('#km').value,days:+m.querySelector('#kd').value}}),r=>'Kit checked out: '+r.loans.length+' loans');if(r){m.remove();kits()}}}
+
+// ---------- account ----------
+async function account(){const a=await api('/my');
+  $('#main').innerHTML=`<div class="row sp"><h2>My account</h2><button class="btn alt" onclick="act(()=>api('/notifications/read',{body:{}})).then(account)">Mark notifications read</button></div>
+  <div class="grid g2"><div class="card"><h3>Notifications</h3>${a.notifications.map(n=>`<div style="padding:6px 0;border-bottom:1px solid #eef3f1;${n.read?'opacity:.55':''}"><span class="badge b-info">${n.kind}</span> ${esc(n.message)}<div class="small mut">${String(n.created_at).slice(0,16).replace('T',' ')}</div></div>`).join('')||'<span class="mut">Nothing yet.</span>'}</div>
+  <div class="card"><h3>Waitlist</h3>${a.waitlist.map(w=>`<div>${esc(w.tool)} ${sb(w.status)} ${w.position?'· position <b>#'+w.position+'</b>':''}</div>`).join('')||'<span class="mut">Not waiting for anything.</span>'}
+  <h3 style="margin-top:14px">Reservations</h3><table><tr><th>Tool</th><th>From</th><th>Days</th><th>Status</th><th></th></tr>${a.reservations.map(r=>`<tr><td>${esc(r.tool)} #${r.unit_no}${r.source==='waitlist'?' <span class="badge b-info">from waitlist</span>':''}</td><td>${fd(r.reserved_for_date)}</td><td>${r.duration_days}</td><td>${sb(r.status)}</td><td>${r.status==='Active'?`<button class="btn alt" onclick="act(()=>api('/reservations/${r.reservation_id}/cancel',{body:{}}),'Cancelled').then(account)">Cancel</button>`:''}</td></tr>`).join('')}</table></div></div>
+  <div class="card" style="margin-top:14px"><h3>Loan history</h3><table><tr><th>#</th><th>Tool</th><th>Out</th><th>Due</th><th>Returned</th><th>Status</th><th>Late fee</th><th>Deposit</th></tr>${a.loans.map(l=>`<tr><td>${l.loan_id}</td><td>${esc(l.tool)} #${l.unit_no}</td><td>${fd(l.loan_date)}</td><td>${fd(l.due_date)}</td><td>${fd(l.return_date)}</td><td>${sb(l.status)}</td><td>₹${l.late_fee}</td><td>₹${l.deposit} ${sb(l.deposit_status)}</td></tr>`).join('')||'<tr><td colspan=8 class="mut">No loans yet.</td></tr>'}</table></div>`}
+
+// ---------- staff ----------
+async function staff(){
+  const d=await api('/staff/desk');
+  const tabs=[['desk','Open loans'],['out','Check-out'],['res','Reservations to collect'],['repair','Repair bench'],['dep','Deposits']];
+  const body={desk:()=>`<table><tr><th>Loan</th><th>Member</th><th>Tool</th><th>Out</th><th>Due</th><th>Status</th><th>Deposit</th><th></th></tr>${d.loans.map(l=>`<tr><td>#${l.loan_id}</td><td>${esc(l.member)}</td><td>${esc(l.tool)} #${l.unit_no}</td><td>${fd(l.loan_date)}</td><td>${fd(l.due_date)}</td><td>${sb(l.status)}${l.days_late>0?' <span class="small" style="color:var(--bad)">'+l.days_late+'d late</span>':''}</td><td>₹${l.deposit}</td><td><button class="btn" onclick="checkinDlg(${l.loan_id},'${esc(l.tool).replace(/'/g,"\\'")}')">Return…</button></td></tr>`).join('')}</table>`,
+   out:()=>`<div class="row"><input id="mq" placeholder="Find member…" oninput="memberSearch()"><select id="mm"></select><select id="mt" onchange="loadUnits()">${d.tools.map(t=>`<option value="${t.tool_id}">${esc(t.name)} (${t.available_units} free)</option>`).join('')}</select><select id="mu"></select><input id="md" type="number" value="3" min="1" style="width:70px" title="days"><button class="btn" onclick="doCheckout()">Check out</button></div><p class="small mut">Deposit is taken automatically; the loan limit is enforced by a trigger.</p>`,
+   res:()=>`<table><tr><th>Reservation</th><th>Member</th><th>Tool</th><th>For</th><th>Source</th><th>Hold expires</th><th></th></tr>${d.reservations.map(r=>`<tr><td>#${r.reservation_id}</td><td>${esc(r.member)}</td><td>${esc(r.tool)} #${r.unit_no}</td><td>${fd(r.reserved_for_date)} (${r.duration_days}d)</td><td>${r.source==='waitlist'?'<span class="badge b-info">waitlist</span>':'direct'}</td><td>${String(r.expires_at).slice(0,16).replace('T',' ')}</td><td><button class="btn" onclick="collect(${r.reservation_id},${r.unit_id},${r.member_id},${r.duration_days})">Hand over</button></td></tr>`).join('')||'<tr><td colspan=7 class="mut">None.</td></tr>'}</table><div class="row" style="margin-top:12px"><button class="btn alt" onclick="job('expire')">Run expiry job</button><button class="btn alt" onclick="job('overdue')">Flag overdue loans</button></div>`,
+   repair:()=>`<table><tr><th>Unit</th><th>Condition</th><th>Damage notes</th><th></th></tr>${d.repairs.map(u=>`<tr><td>${esc(u.tool)} #${u.unit_no}</td><td>${u.condition_status}</td><td>${esc(u.notes||'')}</td><td><button class="btn" onclick="act(()=>api('/staff/repair',{body:{unit_id:${u.unit_id}}}),'Back in circulation - waitlist checked').then(staff)">Repair done</button></td></tr>`).join('')||'<tr><td colspan=4 class="mut">Nothing in repair.</td></tr>'}</table>
+     <h3 style="margin-top:16px">Report damage on a unit</h3><div class="row"><select id="du">${d.tools.map(t=>`<option value="${t.tool_id}">${esc(t.name)}</option>`).join('')}</select><button class="btn alt" onclick="damageDlg()">Report…</button></div>`,
+   dep:()=>'<div id="deps">Loading…</div>'};
+  $('#main').innerHTML=`<h2>Staff desk</h2><div class="tabs">${tabs.map(([k,l])=>`<button class="${sub===k?'on':''}" onclick="sub='${k}';staff()">${l}</button>`).join('')}</div><div class="card">${body[sub]()}</div>`;
+  if(sub==='out'){memberSearch();loadUnits()} if(sub==='dep')loadDeps();
+}
+async function memberSearch(){const ms=await api('/staff/members?q='+encodeURIComponent($('#mq').value||''));$('#mm').innerHTML=ms.filter(m=>m.role==='member').map(m=>`<option value="${m.member_id}">${esc(m.name)} (${m.active_loans_count}/${m.max_loans} out)</option>`).join('')}
+async function loadUnits(){const us=await api('/tools/'+$('#mt').value+'/units');$('#mu').innerHTML=us.map(u=>`<option value="${u.unit_id}">#${u.unit_no} - ${u.status}</option>`).join('')}
+async function doCheckout(){const r=await act(()=>api('/staff/checkout',{body:{unit_id:+$('#mu').value,member_id:+$('#mm').value,days:+$('#md').value}}),r=>'Checked out - loan #'+r.loan_id);if(r)staff()}
+async function collect(rid,uid,mid,days){const r=await act(()=>api('/staff/checkout',{body:{unit_id:uid,member_id:mid,days,reservation_id:rid}}),r=>'Handed over - loan #'+r.loan_id);if(r)staff()}
+async function job(j){const r=await act(()=>api('/staff/jobs/'+j,{body:{}}),r=>r.n+' row(s) processed');if(r)staff()}
+function checkinDlg(id,name){const m=modal(`<h3>Return “${name}” (loan #${id})</h3><div class="grid"><label>Condition on return<select id="sv"><option value="">No damage</option><option>Minor</option><option>Moderate</option><option>Major</option><option>Critical</option></select></label><label>Notes<input id="nt" placeholder="What is wrong?"></label>
+  <p class="small mut">Major/Critical damage auto-flags the unit as <b>Repair</b> (trigger). A normal return runs the waitlist cascade.</p><button class="btn" id="go">Complete return</button></div>`);
+  m.querySelector('#go').onclick=async()=>{const r=await act(()=>api('/staff/checkin',{body:{loan_id:id,severity:m.querySelector('#sv').value,notes:m.querySelector('#nt').value}}));
+    if(r){m.remove();toast(`Returned. Unit → ${r.unit_state}.`+(r.late_fee>0?` Late fee ₹${r.late_fee}.`:'')+(r.promoted?` Waitlist: ${r.promoted.name} promoted to ${r.promoted.tool} #${r.promoted.unit_no} and notified.`:''),'ok');staff()}}}
+async function damageDlg(){const us=await api('/tools/'+$('#du').value+'/units');
+  const m=modal(`<h3>Report damage</h3><div class="grid"><select id="dx">${us.map(u=>`<option value="${u.unit_id}">#${u.unit_no} (${u.status})</option>`).join('')}</select><select id="ds"><option>Minor</option><option>Moderate</option><option>Major</option><option>Critical</option></select><input id="dt" placeholder="Description"><button class="btn" id="go">Submit</button></div>`);
+  m.querySelector('#go').onclick=async()=>{const r=await act(()=>api('/staff/damage',{body:{unit_id:+m.querySelector('#dx').value,severity:m.querySelector('#ds').value,description:m.querySelector('#dt').value||'n/a'}}));if(r){m.remove();toast(`Trigger fired automatically → unit is now ${r.status} / ${r.condition}`,'ok');staff()}}}
+async function loadDeps(){const r=await api('/reports');$('#deps').innerHTML=`<table><tr><th>Loan</th><th>Member</th><th>Tool</th><th>Amount</th><th>Returned</th><th>Releasable?</th><th></th></tr>${r.deposits.map(d=>`<tr><td>#${d.loan_id}</td><td>${esc(d.member)}</td><td>${esc(d.tool)}</td><td>₹${d.amount}</td><td>${fd(d.return_date)}</td><td>${d.releasable?'<span class="badge b-ok">yes</span>':'<span class="badge b-warn">no</span>'}</td><td><button class="btn" onclick="act(()=>api('/staff/deposit/release',{body:{loan_id:${d.loan_id}}}),'Deposit released').then(loadDeps)">Release</button> <button class="btn red" onclick="act(()=>api('/staff/deposit/forfeit',{body:{loan_id:${d.loan_id}}}),'Forfeited').then(loadDeps)">Forfeit</button></td></tr>`).join('')||'<tr><td colspan=7 class="mut">No deposits held.</td></tr>'}</table><p class="small mut">Release is a stored procedure: it refuses unless the item is returned, the condition check passes and the return window has closed.</p>`}
+
+// ---------- dashboard ----------
+async function dash(){const r=await api('/reports');const mx=Math.max(...r.duration.map(x=>+x.avg_days_kept),1),mw=Math.max(...r.waitlist.map(x=>+x.waiting),1);
+  $('#main').innerHTML=`<h2>Dashboard</h2><div class="grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:14px"><div class="card"><div class="kpi">${r.totals.units}</div>physical units</div><div class="card"><div class="kpi">${r.totals.members}</div>members</div><div class="card"><div class="kpi">${r.totals.loans}</div>loans recorded</div><div class="card"><div class="kpi">₹${r.totals.held}</div>deposits held</div></div>
+  <div class="grid g2"><div class="card"><h3>Live fleet status by category</h3>${legend}${r.fleet.map(f=>`<div class="hbar"><span>${esc(f.category)}</span>${bar({total_units:f.total,available_units:f.available,reserved_units:f.reserved,loaned_units:f.loaned,repair_units:f.repair})}<span class="small mut">${f.available}/${f.total}</span></div>`).join('')}</div>
+  <div class="card"><h3>Average loan length by category (days)</h3>${r.duration.map(x=>`<div class="hbar"><span>${esc(x.category)}</span><div class="bar"><i style="background:#0f766e;width:${x.avg_days_kept/mx*100}%"></i></div><span class="small">${x.avg_days_kept}</span></div>`).join('')}</div>
+  <div class="card"><h3>Waitlist length by tool</h3>${r.waitlist.map(x=>`<div class="hbar"><span>${esc(x.tool)}</span><div class="bar"><i style="background:#f59e0b;width:${x.waiting/mw*100}%"></i></div><span class="small">${x.waiting} waiting</span></div>`).join('')||'<span class="mut">No waitlists.</span>'}</div>
+  <div class="card"><h3>Overdue loans</h3><table><tr><th>Member</th><th>Tool</th><th>Days</th><th>Accrued fee</th></tr>${r.overdue.map(o=>`<tr><td>${esc(o.member)}</td><td>${esc(o.tool)} #${o.unit_no}</td><td>${o.days_overdue}</td><td>₹${o.accrued_fee}</td></tr>`).join('')||'<tr><td colspan=4 class="mut">None 🎉</td></tr>'}</table></div>
+  <div class="card"><h3>Deposit holds</h3><table><tr><th>Loan</th><th>Member</th><th>Tool</th><th>₹</th><th>Releasable</th></tr>${r.deposits.slice(0,8).map(d=>`<tr><td>#${d.loan_id}</td><td>${esc(d.member)}</td><td>${esc(d.tool)}</td><td>${d.amount}</td><td>${d.releasable?'yes':'no'}</td></tr>`).join('')}</table></div>
+  <div class="card"><h3>Most-used tools (loans per unit)</h3><table><tr><th>Tool</th><th>Units</th><th>Loans</th><th>Loans/unit</th></tr>${r.utilisation.map(u=>`<tr><td>${esc(u.tool)}</td><td>${u.units}</td><td>${u.lifetime_loans}</td><td>${u.loans_per_unit}</td></tr>`).join('')}</table></div></div>
+  <div class="card" style="margin-top:14px"><h3>Audit trail (latest triggers)</h3><table><tr><th>#</th><th>Table</th><th>Row</th><th>Action</th><th>When</th></tr>${r.audit.map(a=>`<tr><td>${a.audit_id}</td><td>${a.table_name}</td><td>${a.row_id}</td><td>${a.action}</td><td>${String(a.changed_at).slice(0,19).replace('T',' ')}</td></tr>`).join('')}</table></div>`}
+
+// ---------- concurrency lab ----------
+const LAB={naive_read_uncommitted:['1 · The failure','READ UNCOMMITTED, check-then-insert','b-bad'],for_update:['2 · Fix: row lock','READ COMMITTED + SELECT … FOR UPDATE','b-ok'],serializable:['3 · Fix: isolation','SERIALIZABLE + retry on 40001','b-ok'],unique_constraint:['4 · Fix: declarative','UNIQUE(unit_id) constraint','b-ok']};
+async function lab(){
+  $('#main').innerHTML=`<div class="row sp"><h2>Concurrency laboratory</h2><div class="row"><label class="small">Simultaneous requests <input id="nc" type="number" min="2" max="10" value="2" style="width:60px"></label><button class="btn" onclick="runAll()">Run all four</button></div></div>
+  <p class="mut">Two (or more) real database connections try to reserve <b>the same unit</b> at the same instant. Each run uses real threads and real transactions against sandbox tables.</p>
+  <div class="grid g2">${Object.entries(LAB).map(([k,[t,d,c]])=>`<div class="card"><div class="row sp"><h3>${t}</h3><span class="badge ${c}">${k==='naive_read_uncommitted'?'weak isolation':'safe'}</span></div><div class="small mut">${d}</div><div class="row" style="margin-top:10px"><button class="btn" onclick="runLab('${k}')">Run race</button></div><div class="lab-out" id="o_${k}">press “Run race”…</div></div>`).join('')}</div>
+  <p class="small mut" style="margin-top:12px">Note: PostgreSQL accepts READ UNCOMMITTED but treats it as READ COMMITTED (no dirty reads). The anomaly shown is the check-then-act race that this level permits.</p>`}
+async function runLab(k){const n=+($('#nc').value||2);$('#o_'+k).textContent='running…';const r=await act(()=>api('/lab/run',{body:{strategy:k,contenders:n}}));if(!r)return;
+  $('#o_'+k).innerHTML=Object.entries(r.outcomes).map(([m,o])=>`${m.padEnd(10)} → ${esc(o)}`).join('\n')+`\n\nbookings for unit 1: <b>${r.bookings_for_unit_1}</b>\nverdict: <b style="color:${r.double_booked?'#fca5a5':'#86efac'}">${r.double_booked?'✗ DOUBLE-BOOKED - data corrupted':'✓ exactly one booking - consistent'}</b>  (${r.elapsed_s}s)`}
+async function runAll(){for(const k of Object.keys(LAB))await runLab(k)}
+boot();
+</script></body></html>

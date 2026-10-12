@@ -1,0 +1,474 @@
+[
+ {
+  "id": "TC-01",
+  "scenario": "Insert a member whose e-mail already exists",
+  "expected": "UNIQUE violation",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  duplicate key value violates unique constraint \"members_email_key\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-02",
+  "scenario": "Insert a member with a malformed e-mail",
+  "expected": "CHECK violation",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  new row for relation \"members\" violates check constraint \"members_email_check\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-03",
+  "scenario": "Insert a tool with a negative deposit",
+  "expected": "CHECK violation",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  new row for relation \"tools\" violates check constraint \"tools_deposit_amount_check\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-04",
+  "scenario": "Insert a loan whose due date precedes its loan date",
+  "expected": "CHECK violation (chk_due_after_loan)",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  new row for relation \"loans\" violates check constraint \"chk_due_after_loan\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-05",
+  "scenario": "Two simultaneously open loans for the same physical unit",
+  "expected": "Partial unique index uq_one_open_loan_per_unit rejects second",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  duplicate key value violates unique constraint \"uq_one_open_loan_per_unit\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-06",
+  "scenario": "Weak entity: duplicate unit number inside the same tool",
+  "expected": "UNIQUE (tool_id, unit_no) violation",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  duplicate key value violates unique constraint \"tool_units_tool_id_unit_no_key\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-07",
+  "scenario": "Insert two overlapping ACTIVE reservations for one unit (bypassing procedures)",
+  "expected": "EXCLUDE constraint excl_no_overlap rejects",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  conflicting key value violates exclusion constraint \"excl_no_overlap\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-08",
+  "scenario": "Set a unit to condition=Repair but status=Available",
+  "expected": "CHECK violation chk_repair_not_offered",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  new row for relation \"tool_units\" violates check constraint \"chk_repair_not_offered\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-09",
+  "scenario": "Delete a category that still has tools",
+  "expected": "FK violation (ON DELETE RESTRICT)",
+  "group": "Integrity constraints",
+  "actual": "ERROR:  update or delete on table \"categories\" violates foreign key constraint \"tools_category_id_fkey\" on table \"tools\"",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-10",
+  "scenario": "Reserve 'next available' Drill for today",
+  "expected": "Reserved, lowest free unit (#1), unit status \u2192 Reserved",
+  "group": "Reservations",
+  "actual": "reserved, unit_id=1, status=Reserved",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-11",
+  "scenario": "Reserve a specific unit (Drill #3) for a future date",
+  "expected": "Reserved on unit 3; unit stays Available today",
+  "group": "Reservations",
+  "actual": "reserved, unit_id=3, status today=Available",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-12",
+  "scenario": "Two members reserve the same unit for overlapping dates",
+  "expected": "Second request refused (23P01)",
+  "group": "Reservations",
+  "actual": "ERROR:  Unit 1 is not available for the requested dates",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-13",
+  "scenario": "Reserve a Washer (max 3 days) for 5 days",
+  "expected": "Rejected with max-days message",
+  "group": "Reservations",
+  "actual": "ERROR:  Washer can be borrowed for at most 3 days",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-14",
+  "scenario": "Reserve for yesterday",
+  "expected": "Rejected",
+  "group": "Reservations",
+  "actual": "ERROR:  Cannot reserve for a past date",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-15",
+  "scenario": "Washer (1 unit) is out; members 3, 4 request it; member 3 asks twice",
+  "expected": "Waitlisted at positions 1, 2; repeat request idempotent",
+  "group": "Reservations",
+  "actual": "waitlisted@1, waitlisted@2, repeat@1",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-16",
+  "scenario": "Cancel today's reservation",
+  "expected": "Reservation Cancelled; unit back to Available",
+  "group": "Reservations",
+  "actual": "reservation=Cancelled, unit=Available",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-17",
+  "scenario": "Staff checks out Drill #1 to Alice for 3 days",
+  "expected": "Loan row, unit Loaned, deposit Held = \u20b91500, member count = 1",
+  "group": "Check-out / check-in",
+  "actual": "loan #1, unit=Loaned, deposit=Held \u20b91500.00, count=1",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-18",
+  "scenario": "Check out a unit that is already on loan",
+  "expected": "Rejected",
+  "group": "Check-out / check-in",
+  "actual": "ERROR:  Unit 1 of Drill is not available (status: Loaned)",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-19",
+  "scenario": "Dan (limit 2) tries a third simultaneous loan",
+  "expected": "Rejected: loan limit reached; count stays 2",
+  "group": "Check-out / check-in",
+  "actual": "ERROR:  Loan limit reached (2 of 2 items); count=2",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-20",
+  "scenario": "Bob tries to collect Alice's reservation",
+  "expected": "Rejected",
+  "group": "Check-out / check-in",
+  "actual": "ERROR:  Reservation does not match this member/unit or is no longer active",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-21",
+  "scenario": "Alice collects her own reservation",
+  "expected": "Loan created; reservation \u2192 Fulfilled; unit Loaned",
+  "group": "Check-out / check-in",
+  "actual": "reservation=Fulfilled, unit=Loaned",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-22",
+  "scenario": "Return a loan on time with no damage",
+  "expected": "Loan Returned, unit Available, member count 0, no late fee",
+  "group": "Check-out / check-in",
+  "actual": "unit=Available, late_days=0, fee=0, count=0",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-23",
+  "scenario": "Return 3 days after the due date (\u20b920/day)",
+  "expected": "late_days = 3, late_fee = \u20b960",
+  "group": "Check-out / check-in",
+  "actual": "late_days=3, fee=\u20b960",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-24",
+  "scenario": "Return the same loan twice",
+  "expected": "Second return rejected",
+  "group": "Check-out / check-in",
+  "actual": "ERROR:  Loan 1 was already returned",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-25",
+  "scenario": "Washer returned while Bob (#1) and Cara (#2) wait",
+  "expected": "Bob promoted: reservation(source=waitlist), unit Reserved, notified; Cara moves to #1 - all in one transaction",
+  "group": "Waitlist cascade",
+  "actual": "reservation\u2192member 3 (waitlist), unit=Reserved, Bob=Promoted, Cara pos=1, notifications=1",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-26",
+  "scenario": "Return a unit when nobody is waiting",
+  "expected": "Unit simply becomes Available; no reservation created",
+  "group": "Waitlist cascade",
+  "actual": "unit=Available, reservations=0",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-27",
+  "scenario": "Unit completes repair while someone waits",
+  "expected": "Repair\u2192Available triggers the same cascade",
+  "group": "Waitlist cascade",
+  "actual": "after damage=Repair; after repair reservation\u2192member 3",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-28",
+  "scenario": "An uncollected reservation expires while another member waits",
+  "expected": "Expiry job frees unit and promotes the waiting member",
+  "group": "Waitlist cascade",
+  "actual": "expired=1; new active reservation \u2192 member 3 (waitlist)",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-29",
+  "scenario": "Return with Major damage while a member waits",
+  "expected": "Unit auto-flagged Repair; waitlist NOT promoted (broken unit is never handed out)",
+  "group": "Damage trigger",
+  "actual": "unit=Repair/Repair, promoted=0",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-30",
+  "scenario": "Return with Moderate damage",
+  "expected": "Condition \u2192 Needs Inspection; unit held out of circulation",
+  "group": "Damage trigger",
+  "actual": "Repair/Needs Inspection",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-31",
+  "scenario": "Return with Minor damage (scratch)",
+  "expected": "Condition \u2192 Fair; unit still Available",
+  "group": "Damage trigger",
+  "actual": "Available/Fair",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-32",
+  "scenario": "INSERT a Critical damage_report row directly (no procedure, no manual status change)",
+  "expected": "Trigger sets the unit to Repair by itself",
+  "group": "Damage trigger",
+  "actual": "Repair/Repair",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-33",
+  "scenario": "Release deposit immediately after return (24 h window open)",
+  "expected": "Rejected: return window open",
+  "group": "Deposits",
+  "actual": "ERROR:  Cannot release: return window open until 2026-10-13 00:00",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-34",
+  "scenario": "Release deposit after the window closes (hold = 0 h), no damage",
+  "expected": "Deposit Released, member notified",
+  "group": "Deposits",
+  "actual": "released; deposit=Released",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-35",
+  "scenario": "Release deposit when Moderate damage was recorded",
+  "expected": "Rejected: return-condition check failed",
+  "group": "Deposits",
+  "actual": "ERROR:  Cannot release: return-condition check failed (damage recorded)",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-36",
+  "scenario": "Release deposit for an item still on loan",
+  "expected": "Rejected",
+  "group": "Deposits",
+  "actual": "ERROR:  Cannot release: item not yet returned",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-37",
+  "scenario": "Staff forfeits a deposit after damage",
+  "expected": "Deposit Forfeited; a second release attempt reports already forfeited",
+  "group": "Deposits",
+  "actual": "Forfeited; retry \u2192 'already forfeited'",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-38",
+  "scenario": "Camp Kit (Tent + Stove) when every component has a free unit",
+  "expected": "kit_available = true",
+  "group": "Kits",
+  "actual": "kit_available=True",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-39",
+  "scenario": "The only Stove is on loan",
+  "expected": "kit_available = false, blocking_components = 'Stove'",
+  "group": "Kits",
+  "actual": "kit_available=False, blocking=Stove",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-40",
+  "scenario": "Check out Camp Kit while the Stove is out (Tent would be taken first)",
+  "expected": "Whole checkout rolls back: zero kit loans created",
+  "group": "Kits",
+  "actual": "ERROR:  Kit \"Camp Kit\" is unavailable: no free unit of \"Stove\"; loans for Bob = 0",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-41",
+  "scenario": "Check out Camp Kit when all parts are free",
+  "expected": "Two loans created (Tent + Stove), both units Loaned",
+  "group": "Kits",
+  "actual": "loans created: 2",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-42",
+  "scenario": "Fleet-status view after 1 loan and 1 repair",
+  "expected": "Totals add up; counts match the unit table",
+  "group": "Views & reports",
+  "actual": "loaned=1, repair=1, available=5, total=7",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-43",
+  "scenario": "Loan 4 days past due appears in the overdue report with the right fee",
+  "expected": "days_overdue=4, accrued_fee=\u20b980",
+  "group": "Views & reports",
+  "actual": "days=4, fee=\u20b980",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-44",
+  "scenario": "Average loan length by category after a 2-day and a 4-day loan",
+  "expected": "Power Tools average = 3.00 days",
+  "group": "Views & reports",
+  "actual": "avg=3.00",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-45",
+  "scenario": "Audit trigger records loan creation and return",
+  "expected": "\u2265 2 audit rows for the loan (INSERT, UPDATE)",
+  "group": "Views & reports",
+  "actual": "INSERT, UPDATE",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-46",
+  "scenario": "A member-role session calls sp_checkout",
+  "expected": "permission denied",
+  "group": "Security (RBAC/RLS)",
+  "actual": "ERROR:  permission denied for function sp_checkout",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-47",
+  "scenario": "A member-role session tries UPDATE tool_units directly",
+  "expected": "permission denied",
+  "group": "Security (RBAC/RLS)",
+  "actual": "ERROR:  permission denied for table tool_units",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-48",
+  "scenario": "Row-level security: Alice and Bob each hold a loan; Alice queries loans",
+  "expected": "Alice sees exactly 1 row (her own)",
+  "group": "Security (RBAC/RLS)",
+  "actual": "rows visible = 1",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-49",
+  "scenario": "Staff role queries loans",
+  "expected": "Sees all rows (2)",
+  "group": "Security (RBAC/RLS)",
+  "actual": "rows visible = 2",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-50",
+  "scenario": "A member-role session reads the members table (hashes, contacts)",
+  "expected": "permission denied",
+  "group": "Security (RBAC/RLS)",
+  "actual": "ERROR:  permission denied for table members",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-51",
+  "scenario": "2 concurrent reservations of one unit, READ UNCOMMITTED check-then-insert",
+  "expected": "FAILURE DEMONSTRATED: both succeed \u2192 unit double-booked",
+  "group": "Concurrency",
+  "actual": "bookings=2 outcomes=['BOOKED', 'BOOKED']",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-52",
+  "scenario": "Same 2-way race fixed with SELECT \u2026 FOR UPDATE",
+  "expected": "Exactly one booking; loser rejected cleanly",
+  "group": "Concurrency",
+  "actual": "bookings=1 outcomes=['BOOKED', 'rejected (unit already Reserved)']",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-53",
+  "scenario": "Same 2-way race fixed with SERIALIZABLE + retry",
+  "expected": "Exactly one booking; loser rejected cleanly",
+  "group": "Concurrency",
+  "actual": "bookings=1 outcomes=['BOOKED', 'rejected (unit already Reserved)']",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-54",
+  "scenario": "Same 2-way race fixed with UNIQUE constraint",
+  "expected": "Exactly one booking; loser rejected cleanly",
+  "group": "Concurrency",
+  "actual": "bookings=1 outcomes=['BOOKED', 'rejected (unique_violation)']",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-55",
+  "scenario": "5 members call sp_reserve at the same instant for the only Washer",
+  "expected": "Exactly 1 reserved, 4 waitlisted at distinct positions 1-4",
+  "group": "Concurrency",
+  "actual": "reserved=1, waitlist positions=[1, 2, 3, 4]",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-56",
+  "scenario": "3 members concurrently reserve 'next available' Drill (3 units)",
+  "expected": "Three DIFFERENT units (SKIP LOCKED), no waiting, no errors",
+  "group": "Concurrency",
+  "actual": "units assigned=[1, 2, 3]",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-57",
+  "scenario": "5 staff terminals check out the same Stove simultaneously",
+  "expected": "Exactly one loan; four rejected",
+  "group": "Concurrency",
+  "actual": "successes=1, loans in DB=1",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-58",
+  "scenario": "6 sessions INSERT overlapping reservations directly (no locking, no procedure)",
+  "expected": "Exclusion constraint lets exactly one in",
+  "group": "Concurrency",
+  "actual": "inserted=1 of 6",
+  "status": "PASS"
+ },
+ {
+  "id": "TC-59",
+  "scenario": "Staff-role session reads every dashboard view (incl. deposit-holds & overdue)",
+  "expected": "All views readable by staff role",
+  "group": "Security (RBAC/RLS)",
+  "actual": "8 views readable",
+  "status": "PASS"
+ }
+]

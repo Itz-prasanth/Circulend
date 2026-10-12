@@ -1,0 +1,26 @@
+{
+ "naive_read_uncommitted": {
+  "trials": 15,
+  "contenders": 4,
+  "double_booked": 15,
+  "exactly_one": 0
+ },
+ "for_update": {
+  "trials": 15,
+  "contenders": 4,
+  "double_booked": 0,
+  "exactly_one": 15
+ },
+ "serializable": {
+  "trials": 15,
+  "contenders": 4,
+  "double_booked": 0,
+  "exactly_one": 15
+ },
+ "unique_constraint": {
+  "trials": 15,
+  "contenders": 4,
+  "double_booked": 0,
+  "exactly_one": 15
+ }
+}
